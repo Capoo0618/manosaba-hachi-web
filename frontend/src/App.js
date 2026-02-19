@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 function App() {
-const API_BASE = " ";
+const API_BASE = "";
   
   const [config, setConfig] = useState({ characters: [], sounds: [], backgrounds: [] });
   const [state, setState] = useState({
