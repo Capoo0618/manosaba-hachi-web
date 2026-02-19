@@ -4,10 +4,9 @@
     { "src": "api/main.py", "use": "@vercel/python" },
     { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "build", "env": { "CI": "false" } } }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "api/main.py" },
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/static/(.*)", "dest": "/frontend/static/$1" },
-    { "src": "/(.*)", "dest": "/frontend/$1" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "api/main.py" },
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/(.*)", "destination": "/frontend/$1" }
   ]
 }

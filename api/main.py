@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# CORS 設定保持不變
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -12,13 +13,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 關鍵：在 Vercel 環境中，'api' 資料夾會被當作 Function 執行
+# 我們確保路徑是從根目錄開始算
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
 @app.get("/api/config")
 def get_config():
-    # 確保只抓取角色資料夾，排除掉 background 和 sounds
-    exclude_folders = ["sounds", "background","botton"]
+    # 增加防呆：如果資料夾不存在，回傳空清單而不是報錯
+    if not os.path.exists(ASSETS_DIR):
+        return {"characters": [], "sounds": [], "backgrounds": [], "error": "Assets folder not found"}
+
+    exclude_folders = ["sounds", "background", "botton"]
     characters = [
         d for d in os.listdir(ASSETS_DIR) 
         if os.path.isdir(os.path.join(ASSETS_DIR, d)) and d not in exclude_folders
@@ -36,4 +42,6 @@ def get_config():
         "backgrounds": backgrounds
     }
 
-app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+# 修正：掛載必須在路由之後（FastAPI 的習慣），且確保 html=True 處理靜態請求
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
