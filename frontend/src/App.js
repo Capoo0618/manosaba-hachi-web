@@ -29,6 +29,30 @@ const API_BASE = "";
     });
   }, []);
 
+  // 在你的 App 元件內部加入這個 useEffect
+  useEffect(() => {
+    const preloadAssets = () => {
+      // 1. 取得所有角色圖片
+      // 假設你已經從 /api/config 拿到 characters 清單
+      config.characters.forEach((char) => {
+        ['1.png', '2.png'].forEach((file) => {
+          const img = new Image();
+          img.src = `/assets/${char}/${file}`;
+        });
+      });
+
+      // 2. 預載背景圖片
+      config.backgrounds.forEach((bg) => {
+        const img = new Image();
+        img.src = `/assets/background/${bg}`;
+      });
+    };
+
+    if (config.characters.length > 0) {
+      preloadAssets();
+    }
+  }, [config]); // 當 config 更新（API 回傳）時執行
+
   const handleDragStart = (e) => {
     if (!canMove) return;
     isDragging.current = true;
