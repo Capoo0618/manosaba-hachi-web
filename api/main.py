@@ -50,4 +50,5 @@ def debug_path():
         "assets_exists": os.path.exists("assets")
     }
 
-app.mount("/assets", StaticFiles(directory=ASSETS_PATH), name="assets")
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
