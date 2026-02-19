@@ -15,8 +15,10 @@ app.add_middleware(
 
 # 關鍵：在 Vercel 環境中，'api' 資料夾會被當作 Function 執行
 # 我們確保路徑是從根目錄開始算
-ROOT_DIR = os.getcwd()
-ASSETS_DIR = os.path.join(ROOT_DIR, "assets")
+# 這是 api/main.py 裡的路徑設定
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 指向新的位置
+ASSETS_DIR = os.path.join(BASE_DIR, "frontend", "public", "assets")
 
 @app.get("/api/config")
 def get_config():

@@ -5,8 +5,7 @@
     { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "build", "env": { "CI": "false" } } }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "api/main.py" },
-    { "source": "/assets/(.*)", "destination": "/assets/$1" },
-    { "source": "/(.*)", "destination": "/frontend/$1" }
-  ]
+  { "source": "/api/(.*)", "destination": "api/main.py" },
+  { "source": "/(.*)", "destination": "/frontend/$1" }
+]
 }
