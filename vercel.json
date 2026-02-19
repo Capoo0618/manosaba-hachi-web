@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "api/main.py" },
+    { "source": "/assets/(.*)", "destination": "assets/$1" },
+    { "source": "/(.*)", "destination": "/frontend/build/$1" }
+  ]
+}
