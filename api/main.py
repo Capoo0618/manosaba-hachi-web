@@ -15,8 +15,8 @@ app.add_middleware(
 
 # 關鍵：在 Vercel 環境中，'api' 資料夾會被當作 Function 執行
 # 我們確保路徑是從根目錄開始算
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ASSETS_PATH = os.path.join(current_dir, "assets")
 
 @app.get("/api/config")
 def get_config():
@@ -50,5 +50,4 @@ def debug_path():
         "assets_exists": os.path.exists("assets")
     }
 
-if os.path.exists(ASSETS_DIR):
-    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+app.mount("/assets", StaticFiles(directory=ASSETS_PATH), name="assets")
