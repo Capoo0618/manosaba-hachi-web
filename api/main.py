@@ -12,7 +12,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ASSETS_DIR = "assets"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
 @app.get("/api/config")
 def get_config():
