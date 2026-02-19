@@ -42,6 +42,13 @@ def get_config():
         "backgrounds": backgrounds
     }
 
-# 修正：掛載必須在路由之後（FastAPI 的習慣），且確保 html=True 處理靜態請求
+@app.get("/api/debug")
+def debug_path():
+    return {
+        "cwd": os.getcwd(),
+        "ls_root": os.listdir("."),
+        "assets_exists": os.path.exists("assets")
+    }
+
 if os.path.exists(ASSETS_DIR):
     app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
