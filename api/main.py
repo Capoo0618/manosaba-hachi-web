@@ -1,11 +1,9 @@
 import os
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# CORS 設定保持不變
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,18 +11,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 關鍵：在 Vercel 環境中，'api' 資料夾會被當作 Function 執行
-# 我們確保路徑是從根目錄開始算
-# 這是 api/main.py 裡的路徑設定
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# 指向新的位置
-ASSETS_DIR = os.path.join(BASE_DIR, "frontend", "public", "assets")
+# 直接讀取根目錄的 assets (Vercel 運行環境中 assets 與 api 資料夾同級)
+ROOT_DIR = os.getcwd()
+ASSETS_DIR = os.path.join(ROOT_DIR, "assets")
 
 @app.get("/api/config")
 def get_config():
-    # 增加防呆：如果資料夾不存在，回傳空清單而不是報錯
     if not os.path.exists(ASSETS_DIR):
-        return {"characters": [], "sounds": [], "backgrounds": [], "error": "Assets folder not found"}
+        return {
+            "characters": [], 
+            "sounds": [], 
+            "backgrounds": [], 
+            "error": "Assets folder not found",
+            "debug_info": {"cwd": ROOT_DIR, "ls": os.listdir(ROOT_DIR)}
+        }
 
     exclude_folders = ["sounds", "background", "botton"]
     characters = [
@@ -44,13 +44,4 @@ def get_config():
         "backgrounds": backgrounds
     }
 
-@app.get("/api/debug")
-def debug_path():
-    return {
-        "cwd": os.getcwd(),
-        "ls_root": os.listdir("."),
-        "assets_exists": os.path.exists("assets")
-    }
-
-if os.path.exists(ASSETS_DIR):
-    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+# 移除 app.mount("/assets", ...)，交給 Vercel rewrites 處理
