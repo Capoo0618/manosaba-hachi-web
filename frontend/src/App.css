@@ -148,22 +148,20 @@ body { margin: 0; background-color: #000; overflow: hidden; font-family: 'Segoe 
   border-color: #ff0000;
 }
 
-/* 右下角 MENU/CLOSE 按鈕固定 */
 .toggle-panel-btn {
-  position: fixed; /* 改為固定定位 */
-  bottom: 25px;
-  right: 25px;
-  z-index: 110;
+  position: fixed; /* 確保按鈕固定在視窗上 */
+  top: 20px;       /* 修改：從底部改為頂部 */
+  right: 20px;     /* 維持在右側 */
+  z-index: 110;    /* 確保在所有 UI 之上 */
   background: #ff0000;
   color: #fff;
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 10px 15px;
+  border-radius: 5px;
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
-
 /* 手機版樣式修正 */
 @media (max-width: 600px) {
   .control-panel {

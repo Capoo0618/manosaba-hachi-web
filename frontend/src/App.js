@@ -20,6 +20,7 @@ function App() {
   const isDragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const redTimerRef = useRef(null);
+  const rainbowTimerRef = useRef(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/config`).then(res => res.json()).then(data => {
@@ -45,14 +46,32 @@ function App() {
     }
   }, [config]);
 
+  // ... 前方代碼保持不變
+
   const handleAction = (e) => {
+    // 1. 提高敏感度：將 isProcessing 的鎖定檢查與解鎖時間縮短
     if (canMove || isProcessing) return; 
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     setIsProcessing(true);
+    
+    // 2. 隨機觸發彩虹效果邏輯修正
     const rainbowTrigger = Math.random() < 0.01;
-    setStatus(prev => ({ ...prev, isPressed: true, isRed: false, isRainbow: rainbowTrigger ? true : prev.isRainbow }));
+    
+    if (rainbowTrigger) {
+      if (rainbowTimerRef.current) clearTimeout(rainbowTimerRef.current);
+      // 觸發彩虹時，確保 isRed 是 false，避免特效疊加衝突
+      setStatus(prev => ({ ...prev, isPressed: true, isRainbow: true, isRed: false }));
+      
+      rainbowTimerRef.current = setTimeout(() => {
+        setStatus(prev => ({ ...prev, isRainbow: false }));
+      }, 5000); 
+    } else {
+      // 普通點擊
+      setStatus(prev => ({ ...prev, isPressed: true }));
+    }
 
+    // 播放音訊
     if (state.selectedSounds.length > 0) {
       const sound = state.selectedSounds[Math.floor(Math.random() * state.selectedSounds.length)];
       new Audio(`${API_BASE}/assets/sounds/${sound}`).play();
@@ -62,8 +81,18 @@ function App() {
     setState(s => ({ ...s, count: newCount }));
     localStorage.setItem("clickCount", newCount);
 
-    redTimerRef.current = setTimeout(() => setStatus(prev => ({ ...prev, isRed: true })), 2500);
-    setTimeout(() => setIsProcessing(false), 200); 
+    // 3. 長按觸發紅色特效的計時器
+    // 縮短觸發時間至 800ms 讓感應更靈敏，並增加條件判斷
+    redTimerRef.current = setTimeout(() => {
+      setStatus(prev => {
+        // 如果已經在彩虹狀態，就不觸發紅色特效，避免顏色錯誤
+        if (prev.isRainbow) return prev;
+        return { ...prev, isRed: true };
+      });
+    }, 2500); 
+    
+    // 4. 提高點擊敏感度：將防止連點的鎖定時間從 200ms 縮短為 100ms
+    setTimeout(() => setIsProcessing(false), 10); 
   };
 
   const handleRelease = () => {
@@ -126,15 +155,21 @@ function App() {
             alignItems: 'center'
           }}
         >
-          <img
-            src={`${API_BASE}/assets/${state.char}/${status.isPressed ? '2.png' : '1.png'}`}
+          <img 
+            src={`${API_BASE}/assets/${state.char}/${status.isPressed ? '2.png' : '1.png'}`} 
             className={`pop-img ${status.isRed ? 'effect-red' : ''} ${status.isRainbow ? 'effect-rainbow' : ''} ${canMove ? 'draggable' : ''}`}
-            alt="char"
-            draggable="false"
-            style={{
-              /* 2. 這個內層 img 負責縮放與 CSS 特效 */
-              transform: status.isPressed ? 'scale(0.95)' : 'scale(1)',
-              transition: 'transform 0.1s' 
+            alt="char" 
+            draggable="false" // 原本已有，維持禁止原生拖拽
+            onContextMenu={(e) => e.preventDefault()} // 新增：攔截長按/右鍵選單
+            onPointerDown={(e) => { handleDragStart(e); handleAction(e); }} 
+            onPointerUp={handleRelease}
+            onPointerLeave={handleRelease}
+            style={{ 
+                /* 維持之前的位移與縮放邏輯 */
+                transform: `translate(${position.x}px, ${position.y}px) ${status.isPressed ? 'scale(0.95)' : 'scale(1)'}`,
+                position: 'relative',
+                touchAction: 'none',
+                zIndex: 10
             }}
           />
         </div>
