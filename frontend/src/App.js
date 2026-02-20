@@ -92,7 +92,7 @@ function App() {
     }, 2500); 
     
     // 4. 提高點擊敏感度：將防止連點的鎖定時間從 200ms 縮短為 100ms
-    setTimeout(() => setIsProcessing(false), 10); 
+    setTimeout(() => setIsProcessing(false), 50); 
   };
 
   const handleRelease = () => {
@@ -136,45 +136,43 @@ function App() {
         {showPanel ? "CLOSE" : "MENU"} 
       </button>
 
-          {/* 修改後的渲染結構 */}
-    <div className="main-display">
-      {state.char && (
-        <div
-          className="char-position-wrapper"
-          onPointerDown={(e) => { handleDragStart(e); handleAction(e); }}
-          onPointerUp={handleRelease}
-          onPointerLeave={handleRelease}
-          style={{
-            /* 1. 這個外層 div 負責位移，不會被 CSS 動畫覆蓋 */
-            transform: `translate(${position.x}px, ${position.y}px)`,
-            position: 'relative',
-            zIndex: 10,
-            touchAction: 'none',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <img 
-            src={`${API_BASE}/assets/${state.char}/${status.isPressed ? '2.png' : '1.png'}`} 
-            className={`pop-img ${status.isRed ? 'effect-red' : ''} ${status.isRainbow ? 'effect-rainbow' : ''} ${canMove ? 'draggable' : ''}`}
-            alt="char" 
-            draggable="false" // 原本已有，維持禁止原生拖拽
-            onContextMenu={(e) => e.preventDefault()} // 新增：攔截長按/右鍵選單
-            onPointerDown={(e) => { handleDragStart(e); handleAction(e); }} 
+        {/* 修改後的渲染結構 */}
+      <div className="main-display">
+        {state.char && (
+          <div
+            className="char-position-wrapper"
+            onContextMenu={(e) => e.preventDefault()} // 攔截長按系統選單交給外層
+            onPointerDown={(e) => { handleDragStart(e); handleAction(e); }}
             onPointerUp={handleRelease}
             onPointerLeave={handleRelease}
-            style={{ 
-                /* 維持之前的位移與縮放邏輯 */
-                transform: `translate(${position.x}px, ${position.y}px) ${status.isPressed ? 'scale(0.95)' : 'scale(1)'}`,
-                position: 'relative',
-                touchAction: 'none',
-                zIndex: 10
+            onPointerCancel={handleRelease} // 新增：防止手機系統中斷手勢
+            style={{
+              /* 1. 外層專心負責「位移」與「接收點擊」 */
+              transform: `translate(${position.x}px, ${position.y}px)`,
+              position: 'relative',
+              zIndex: 10,
+              touchAction: 'none',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent' // 消除點擊藍框
             }}
-          />
-        </div>
-      )}
-    </div>
+          >
+            <img 
+              src={`${API_BASE}/assets/${state.char}/${status.isPressed ? '2.png' : '1.png'}`} 
+              className={`pop-img ${status.isRed ? 'effect-red' : ''} ${status.isRainbow ? 'effect-rainbow' : ''} ${canMove ? 'draggable' : ''}`}
+              alt="char" 
+              draggable="false" 
+              style={{ 
+                  /* 2. 內層非常乾淨，只負責「縮放」 */
+                  transform: status.isPressed ? 'scale(0.95)' : 'scale(1)',
+                  transition: 'transform 0.1s' 
+              }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* 彈出選擇小視窗 (Modal) */}
       {activeModal && (
