@@ -10,13 +10,6 @@ body { margin: 0; background-color: #000; overflow: hidden; font-family: 'Segoe 
 .move-toggle-box img { width: 80%; pointer-events: none; }
 .move-toggle-box.active { border-color: #ff0000; background: #000; filter: invert(1); transform: scale(1.1); }
 
-/* --- 修正 1: 紅色特效減弱，並防止覆蓋七彩 --- */
-.effect-red {
-    /* 調整亮度與對比，讓輪廓清晰 */
-    filter: brightness(0.8) sepia(1) hue-rotate(-50deg) saturate(5) drop-shadow(0 0 10px red) !important;
-    animation: shake 0.1s infinite;
-}
-
 /* 確保七彩特效優先順序更高，且效果更明顯 */
 .effect-rainbow {
     animation: rainbow-anim 1s infinite linear !important;
@@ -27,16 +20,158 @@ body { margin: 0; background-color: #000; overflow: hidden; font-family: 'Segoe 
     100% { filter: hue-rotate(360deg) saturate(200%) brightness(1.2) drop-shadow(0 0 15px white); }
 }
 
-@keyframes shake { 0%{transform:translate(1px,1px)} 50%{transform:translate(-2px,-1px)} 100%{transform:translate(1px,1px)} }
 
-.main-display { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
-.pop-img { max-width: 80%; max-height: 60vh; user-select: none; transition: filter 0.3s; }
-.draggable { cursor: grab !important; border: 2px dashed rgba(255,255,255,0.3); }
 
-.control-panel { background: #fff; border-top: 5px solid #ff0000; padding: 15px; transition: 0.4s; z-index: 100; }
-.control-panel.hide { transform: translateY(100%); }
-.dropdown-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
-.checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); background: #f0f0f0; padding: 10px; border-radius: 5px; max-height: 80px; overflow-y: auto; color: #000; font-size: 0.8rem; }
-.toggle-panel-btn { position: absolute; bottom: 20px; right: 20px; z-index: 110; background: #ff0000; color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+/* 確保主顯示區是居中的容器 */
+.main-display {
+  flex: 1;
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center;     /* 垂直居中 */
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* 角色圖片本身不帶位移 transform */
+.pop-img {
+  max-width: 80%;
+  max-height: 60vh;
+  user-select: none; /* 防止文字與圖片被選取 */
+  -webkit-user-drag: none; /* 針對 Webkit 瀏覽器禁止原生拖拽 */
+  -webkit-touch-callout: none; /* 關鍵：禁止手機端長按彈出系統選單 */
+  transition: filter 0.3s;
+  cursor: pointer;
+  /* 確保點擊事件能正確傳遞 */
+  pointer-events: auto; 
+}
+
+/* 修正紅色特效：不要在 animation 裡面寫 translate，否則會覆蓋位置 */
+.effect-red {
+    filter: brightness(0.8) sepia(1) hue-rotate(-50deg) saturate(5) drop-shadow(0 0 10px red) !important;
+    /* 這裡只留震動動畫，但要注意動畫內容 */
+    animation: shake-only 0.1s infinite;
+}
+
+/* 修正後的震動：只震動內層圖片，不影響座標 */
+@keyframes shake-only {
+    0% { margin: 1px 0 0 1px; }
+    50% { margin: -2px 0 0 -1px; }
+    100% { margin: 1px 0 0 1px; }
+}
+
+/* --- 強制底部面板固定 --- */
+.control-panel {
+  position: fixed; /* 固定在瀏覽器視窗 */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 5px solid #ff0000;
+  padding: 20px 0; /* 增加上下間距 */
+  transition: transform 0.4s ease;
+  z-index: 100;
+  display: flex;
+  justify-content: center; /* 按鈕水平置中 */
+  box-sizing: border-box;
+}
+
+.control-panel.hide {
+  transform: translateY(100%); /* 隱藏時向下推 */
+}
+
+/* 底部按鈕容器 */
+.bottom-btn-row {
+  display: flex;
+  gap: 15px;
+  padding: 0 20px;
+}
+
+.bottom-btn-row button {
+  padding: 12px 24px;
+  border: 2px solid #ff0000;
+  border-radius: 30px;
+  background: #fff;
+  font-weight: bold;
+  color: #ff0000;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  white-space: nowrap;
+}
+
+/* --- 彈窗樣式優化 --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 25px;
+  border-radius: 20px;
+  width: 85%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.modal-scroll-area {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 兩欄佈局 */
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 20px 0;
+  padding: 10px;
+}
+
+.modal-scroll-area button {
+  padding: 15px 10px;
+  border: 2px solid #eee;
+  border-radius: 12px;
+  background: #fdfdfd;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.modal-scroll-area button.active {
+  background: #ff0000;
+  color: #fff;
+  border-color: #ff0000;
+}
+
+/* 右下角 MENU/CLOSE 按鈕固定 */
+.toggle-panel-btn {
+  position: fixed; /* 改為固定定位 */
+  bottom: 25px;
+  right: 25px;
+  z-index: 110;
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* 手機版樣式修正 */
+@media (max-width: 600px) {
+  .control-panel {
+    padding: 15px 10px;
+  }
+  .btn-row button {
+    padding: 10px 18px; /* 手機版按鈕稍微大一點點好按 */
+  }
+}
 
 @media (max-width: 600px) { .top-ui-container { width: 95%; flex-direction: column; top: 10px; } .score-area { font-size: 0.7rem; padding: 5px 15px; } }

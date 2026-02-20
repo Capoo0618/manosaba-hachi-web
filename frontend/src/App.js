@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 function App() {
-const API_BASE = "";
+  const API_BASE = ""; 
   
   const [config, setConfig] = useState({ characters: [], sounds: [], backgrounds: [] });
   const [state, setState] = useState({
@@ -11,47 +11,65 @@ const API_BASE = "";
   });
   
   const [status, setStatus] = useState({ isPressed: false, isRed: false, isRainbow: false });
-  const [showPanel, setShowPanel] = useState(true);
+  const [showPanel, setShowPanel] = useState(true); 
+  const [activeModal, setActiveModal] = useState(null); // 新增：控制哪個視窗開啟 (char, bg, sound)
   const [canMove, setCanMove] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isProcessing, setIsProcessing] = useState(false); 
 
   const isDragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const redTimerRef = useRef(null);
-  const rainbowTimerRef = useRef(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/config`).then(res => res.json()).then(data => {
       setConfig(data);
       if (data.characters.length > 0) {
-        setState(s => ({ ...s, char: data.characters[0], bg: data.backgrounds[0] || "", selectedSounds: data.sounds }));
+        setState(s => ({ 
+            ...s, 
+            char: data.characters[0], 
+            bg: data.backgrounds[0] || "", 
+            selectedSounds: data.sounds 
+        }));
       }
     });
   }, []);
 
-  // 在你的 App 元件內部加入這個 useEffect
   useEffect(() => {
-    const preloadAssets = () => {
-      // 1. 取得所有角色圖片
-      // 假設你已經從 /api/config 拿到 characters 清單
-      config.characters.forEach((char) => {
-        ['1.png', '2.png'].forEach((file) => {
-          const img = new Image();
-          img.src = `/assets/${char}/${file}`;
-        });
-      });
-
-      // 2. 預載背景圖片
-      config.backgrounds.forEach((bg) => {
-        const img = new Image();
-        img.src = `/assets/background/${bg}`;
-      });
-    };
-
     if (config.characters.length > 0) {
-      preloadAssets();
+      config.characters.forEach(char => {
+        ['1.png', '2.png'].forEach(f => { const img = new Image(); img.src = `/assets/${char}/${f}`; });
+      });
+      config.backgrounds.forEach(bg => { const img = new Image(); img.src = `/assets/background/${bg}`; });
+      config.sounds.forEach(s => { const a = new Audio(`/assets/sounds/${s}`); a.preload = "auto"; });
     }
-  }, [config]); // 當 config 更新（API 回傳）時執行
+  }, [config]);
+
+  const handleAction = (e) => {
+    if (canMove || isProcessing) return; 
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    setIsProcessing(true);
+    const rainbowTrigger = Math.random() < 0.01;
+    setStatus(prev => ({ ...prev, isPressed: true, isRed: false, isRainbow: rainbowTrigger ? true : prev.isRainbow }));
+
+    if (state.selectedSounds.length > 0) {
+      const sound = state.selectedSounds[Math.floor(Math.random() * state.selectedSounds.length)];
+      new Audio(`${API_BASE}/assets/sounds/${sound}`).play();
+    }
+
+    const newCount = state.count + 1;
+    setState(s => ({ ...s, count: newCount }));
+    localStorage.setItem("clickCount", newCount);
+
+    redTimerRef.current = setTimeout(() => setStatus(prev => ({ ...prev, isRed: true })), 2500);
+    setTimeout(() => setIsProcessing(false), 200); 
+  };
+
+  const handleRelease = () => {
+    clearTimeout(redTimerRef.current);
+    setStatus(prev => ({ ...prev, isPressed: false, isRed: false }));
+  };
 
   const handleDragStart = (e) => {
     if (!canMove) return;
@@ -70,39 +88,10 @@ const API_BASE = "";
 
   const handleDragEnd = () => { isDragging.current = false; };
 
-  const handleAction = (e) => {
-    if (canMove) return; 
-    if (e.type === 'mousedown' && e.button !== 0) return;
-    
-    const rainbowTrigger = Math.random() < 0.1;
-    setStatus(prev => ({ ...prev, isPressed: true, isRed: false, isRainbow: rainbowTrigger ? true : prev.isRainbow }));
-
-    if (state.selectedSounds.length > 0) {
-      const sound = state.selectedSounds[Math.floor(Math.random() * state.selectedSounds.length)];
-      new Audio(`${API_BASE}/assets/sounds/${sound}`).play();
-    }
-
-    const newCount = state.count + 1;
-    setState(s => ({ ...s, count: newCount }));
-    localStorage.setItem("clickCount", newCount);
-
-    if (rainbowTrigger) {
-      if (rainbowTimerRef.current) clearTimeout(rainbowTimerRef.current);
-      rainbowTimerRef.current = setTimeout(() => setStatus(prev => ({ ...prev, isRainbow: false })), 5000);
-    }
-
-    redTimerRef.current = setTimeout(() => setStatus(prev => ({ ...prev, isRed: true })), 2500);
-  };
-
-  const handleRelease = () => {
-    clearTimeout(redTimerRef.current);
-    setStatus(prev => ({ ...prev, isPressed: false, isRed: false }));
-  };
-
   return (
     <div className="App" 
          style={{ backgroundImage: state.bg ? `url(${API_BASE}/assets/background/${state.bg})` : 'none' }}
-         onMouseMove={handleDragging} onMouseUp={handleDragEnd} onTouchMove={handleDragging} onTouchEnd={handleDragEnd}>
+         onPointerMove={handleDragging} onPointerUp={handleDragEnd}>
       
       <div className="top-ui-container">
         <div className="score-area">
@@ -114,56 +103,75 @@ const API_BASE = "";
         </div>
       </div>
 
-      <button className="toggle-panel-btn" onClick={() => setShowPanel(!showPanel)}> {showPanel ? "CLOSE" : "MENU"} </button>
+      <button className="toggle-panel-btn" onClick={() => setShowPanel(!showPanel)}> 
+        {showPanel ? "CLOSE" : "MENU"} 
+      </button>
 
-      <div className="main-display" onMouseDown={handleAction} onMouseUp={handleRelease} onTouchStart={handleAction} onTouchEnd={handleRelease}>
-        {state.char && (
-          <img 
-            src={`${API_BASE}/assets/${state.char}/${status.isPressed ? '2.png' : '1.png'}`} 
+          {/* 修改後的渲染結構 */}
+    <div className="main-display">
+      {state.char && (
+        <div
+          className="char-position-wrapper"
+          onPointerDown={(e) => { handleDragStart(e); handleAction(e); }}
+          onPointerUp={handleRelease}
+          onPointerLeave={handleRelease}
+          style={{
+            /* 1. 這個外層 div 負責位移，不會被 CSS 動畫覆蓋 */
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            position: 'relative',
+            zIndex: 10,
+            touchAction: 'none',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <img
+            src={`${API_BASE}/assets/${state.char}/${status.isPressed ? '2.png' : '1.png'}`}
             className={`pop-img ${status.isRed ? 'effect-red' : ''} ${status.isRainbow ? 'effect-rainbow' : ''} ${canMove ? 'draggable' : ''}`}
-            alt="char" 
+            alt="char"
             draggable="false"
-            onMouseDown={handleDragStart} onTouchStart={handleDragStart}
-            /* 修正 2: 這裡的 transform 寫法確保縮放與位移共存，不會互相覆蓋 */
-            style={{ 
-                left: `${position.x}px`, 
-                top: `${position.y}px`,
-                position: 'relative',
-                transform: status.isPressed ? 'scale(0.95)' : 'scale(1)'
+            style={{
+              /* 2. 這個內層 img 負責縮放與 CSS 特效 */
+              transform: status.isPressed ? 'scale(0.95)' : 'scale(1)',
+              transition: 'transform 0.1s' 
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
+    </div>
 
-      <footer className={`control-panel ${showPanel ? 'show' : 'hide'}`}>
-        <div className="dropdown-container">
-          <div className="select-group">
-            <label>角色切換</label>
-            <select value={state.char} onChange={(e) => setState({...state, char: e.target.value})}>
-              {config.characters.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="select-group">
-            <label>背景選擇</label>
-            <select value={state.bg} onChange={(e) => setState({...state, bg: e.target.value})}>
-              {config.backgrounds.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
-          <div className="sound-multi-select">
-            <label>聲音清單</label>
-            <div className="checkbox-grid">
-              {config.sounds.map(s => (
-                <label key={s} className="checkbox-item">
-                  <input type="checkbox" checked={state.selectedSounds.includes(s)} 
-                         onChange={() => {
-                           const next = state.selectedSounds.includes(s) ? state.selectedSounds.filter(i => i !== s) : [...state.selectedSounds, s];
-                           setState({...state, selectedSounds: next});
-                         }} />
-                  <span>{s}</span>
-                </label>
+      {/* 彈出選擇小視窗 (Modal) */}
+      {activeModal && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>{activeModal === 'char' ? '選擇角色' : activeModal === 'bg' ? '選擇背景' : '音訊過濾'}</h3>
+            <div className="modal-scroll-area">
+              {activeModal === 'char' && config.characters.map(c => (
+                <button key={c} className={state.char === c ? 'active' : ''} onClick={() => { setState({...state, char: c}); setActiveModal(null); }}>{c}</button>
+              ))}
+              {activeModal === 'bg' && config.backgrounds.map(b => (
+                <button key={b} className={state.bg === b ? 'active' : ''} onClick={() => { setState({...state, bg: b}); setActiveModal(null); }}>{b.split('.')[0]}</button>
+              ))}
+              {activeModal === 'sound' && config.sounds.map(s => (
+                <button key={s} className={state.selectedSounds.includes(s) ? 'active' : ''} 
+                  onClick={() => {
+                    const next = state.selectedSounds.includes(s) ? state.selectedSounds.filter(i => i !== s) : [...state.selectedSounds, s];
+                    setState({...state, selectedSounds: next});
+                  }}>{s.replace(/\.[^/.]+$/, "")}</button>
               ))}
             </div>
+            <button className="modal-close-btn" onClick={() => setActiveModal(null)}>關閉</button>
           </div>
+        </div>
+      )}
+
+      {/* 底部按鈕面板 */}
+      <footer className={`control-panel ${showPanel ? 'show' : 'hide'}`}>
+        <div className="bottom-btn-row">
+          <button onClick={() => setActiveModal('char')}>角色切換</button>
+          <button onClick={() => setActiveModal('bg')}>背景選擇</button>
+          <button onClick={() => setActiveModal('sound')}>音訊過濾</button>
         </div>
       </footer>
     </div>
